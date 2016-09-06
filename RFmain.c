@@ -5,18 +5,17 @@
 #define CRC_LQI_IDX (PACKET_LEN+2)
 #define CRC_OK (BIT7)
 #define PATABLE_VAL (0xC0)
-#define PATABLE_VAL (0xC0)
+//#define PATABLE_VAL (0xC0)
 #define PATABLE_ARRAY_SZ	8
 static const unsigned char PATABLE_ARR[PATABLE_ARRAY_SZ]={0xC0,0,0,0,0,0,0,0};
 extern RF_SETTINGS rfSettings;
 unsigned char packetReceived;
 unsigned char packetTransmit;
-unsigned char RxBuffer[64];
+unsigned char RxBuffer[];
 unsigned char RxBufferLength = 0;
-const unsigned char TxBuffer[6] =
-{
-PACKET_LEN, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE
-};
+const unsigned char TxBuffer1[3]= {PACKET_LEN, 0xFF, 0x00};
+const unsigned char TxBuffer2[3]= {PACKET_LEN, 0xFF, 0xFF};
+//const unsigned char TxBuffer3[3]= {PACKET_LEN, 0xFF, 0xAA};
 unsigned char buttonPressed = FALSE;
 const unsigned int i = 0;
 void main(void)
@@ -29,19 +28,30 @@ ResetRadioCore();
 RfOps_InitRadio(&rfSettings,(unsigned char*)PATABLE_ARR,PATABLE_ARRAY_SZ);
 InitButtonLeds();
 RfOps_ReceiveOn();
+
 while (1)
 {
 __bis_SR_register(LPM3_bits + GIE);
 __no_operation();
 if (buttonPressed)
 {
+
 P3OUT |= BIT6;
 buttonPressed = FALSE;
 P1IFG = 0;
 RfOps_ReceiveOff();
-RfOps_Transmit((unsigned char*) TxBuffer, sizeof TxBuffer);
-P1IE |= BIT7; // Re-enable button press
+RfOps_Transmit((unsigned char*) TxBuffer1, sizeof TxBuffer1);
 
+//{
+//   /* simple delay function */
+//   volatile int i;
+//   for(i = 0; i < 228; i++)
+//      {
+//      }
+//}
+RfOps_Transmit((unsigned char*) TxBuffer2, sizeof TxBuffer2);
+
+P1IE |= BIT7; // Re-enable button press
 }
 
 else if (!RfOps_IsTransmitting())
@@ -58,8 +68,12 @@ ReadBurstReg(RF_RXFIFORD, RxBuffer, RxBufferLength);
 __no_operation();
 
 if (RxBuffer[CRC_LQI_IDX] & CRC_OK)
-P1OUT ^= BIT0;
 
+	//unsigned char ReadReg 	( 	unsigned char  	addr )
+P1OUT ^= BIT0;
+ RfOps_ReceiveOff();
+//RfOps_Transmit((unsigned char*) TxBuffer3, sizeof TxBuffer3);
+//RfOps_ReceiveOn();
 RfOps_ClearPacketReceivedFlag();
 }
 }
@@ -105,7 +119,7 @@ case 16:
 P1IE = 0;
 buttonPressed = TRUE;
 
-__bic_SR_register_on_exit(LPM3_bits); // Exit active
+__bic_SR_register_on_exit(LPM3_bits);
 break;
 }
 }
