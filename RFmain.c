@@ -11,17 +11,16 @@ static const unsigned char PATABLE_ARR[PATABLE_ARRAY_SZ]={0xC0,0,0,0,0,0,0,0};
 extern RF_SETTINGS rfSettings;
 unsigned char packetReceived;
 unsigned char packetTransmit;
-unsigned char RxBuffer[];
+unsigned char RxBuffer1[6]={PACKET_LEN, 0xFF,0X00,PACKET_LEN, 0xFF, 0xFF};
 unsigned char RxBufferLength = 0;
-const unsigned char TxBuffer1[3]= {PACKET_LEN, 0xFF, 0x00};
-const unsigned char TxBuffer2[3]= {PACKET_LEN, 0xFF, 0xFF};
-//const unsigned char TxBuffer3[3]= {PACKET_LEN, 0xFF, 0xAA};
-unsigned char buttonPressed = FALSE;
+unsigned char RxBuffer[6];
+const unsigned char TxBuffer3[3]= {PACKET_LEN, 0xFF, 0xAA};
 const unsigned int i = 0;
 void main(void)
 {
-// Stop watchdog timer to prevent time out reset
+/// Stop watchdog timer to prevent time out reset
 WDTCTL = WDTPW + WDTHOLD;
+P3OUT &= ~BIT6;
 
 SetVCore(2);
 ResetRadioCore();
@@ -33,32 +32,6 @@ while (1)
 {
 __bis_SR_register(LPM3_bits + GIE);
 __no_operation();
-if (buttonPressed)
-{
-
-P3OUT |= BIT6;
-buttonPressed = FALSE;
-P1IFG = 0;
-RfOps_ReceiveOff();
-RfOps_Transmit((unsigned char*) TxBuffer1, sizeof TxBuffer1);
-
-//{
-//   /* simple delay function */
-//   volatile int i;
-//   for(i = 0; i < 228; i++)
-//      {
-//      }
-//}
-RfOps_Transmit((unsigned char*) TxBuffer2, sizeof TxBuffer2);
-
-P1IE |= BIT7; // Re-enable button press
-}
-
-else if (!RfOps_IsTransmitting())
-{
-RfOps_ReceiveOn();
-}
-
 if (RfOps_HasPacketReceived())
 {
 
@@ -68,13 +41,20 @@ ReadBurstReg(RF_RXFIFORD, RxBuffer, RxBufferLength);
 __no_operation();
 
 if (RxBuffer[CRC_LQI_IDX] & CRC_OK)
+   if (RxBuffer1[0] == RxBuffer[0])
+	   if (RxBuffer1[1] == RxBuffer[1])
+	      if (RxBuffer1[2] == RxBuffer[2])
+	         if (RxBuffer1[3] == RxBuffer[3])
+	             if (RxBuffer1[4] == RxBuffer[4])
+	            	 if (RxBuffer1[5] == RxBuffer[5])
+	            		 {
+	            		 P3OUT ^= BIT6;
+RfOps_ReceiveOff();
+RfOps_Transmit((unsigned char*) TxBuffer3, sizeof TxBuffer3);
 
-	//unsigned char ReadReg 	( 	unsigned char  	addr )
-P1OUT ^= BIT0;
- RfOps_ReceiveOff();
-//RfOps_Transmit((unsigned char*) TxBuffer3, sizeof TxBuffer3);
-//RfOps_ReceiveOn();
+RfOps_ReceiveOn();
 RfOps_ClearPacketReceivedFlag();
+}
 }
 }
 }
@@ -117,7 +97,7 @@ case 14:
 break;
 case 16:
 P1IE = 0;
-buttonPressed = TRUE;
+//buttonPressed = TRUE;
 
 __bic_SR_register_on_exit(LPM3_bits);
 break;
